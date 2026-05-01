@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数学课程</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: #f0f4f8;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── 顶部标题栏 ── */
+    .header {
+      background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+      color: white;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      flex-shrink: 0;
+    }
+    .header-icon { font-size: 30px; }
+    .header-text h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+    .header-text p  { font-size: 13px; opacity: 0.8; margin-top: 3px; }
+
+    /* ── 思维导图区域 ── */
+    #mindmap-wrap { flex: 1; position: relative; overflow: hidden; }
+    .markmap { width: 100%; height: 100%; }
+
+    /* ── 遮罩层 ── */
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(3px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    #overlay.open { display: flex; }
+
+    /* ── 弹窗 ── */
+    #modal {
+      background: #fff;
+      border-radius: 16px;
+      width: 860px;
+      max-width: 100%;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.45);
+      animation: pop-in 0.18s ease;
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+    }
+    @keyframes pop-in {
+      from { transform: scale(0.94); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+      color: white;
+      flex-shrink: 0;
+    }
+    .modal-title {
+      font-size: 17px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-close {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      font-size: 18px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.4); }
+
+    /* ── 内容区域（视频 / PDF / 会议 / 空） ── */
+    #content-area {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      min-height: 200px;
+    }
+
+    /* 视频 16:9 */
+    #video-wrap {
+      display: none;
+      position: relative;
+      padding-top: 56.25%;
+      background: #111;
+    }
+    #video-iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* PDF */
+    #pdf-wrap {
+      display: none;
+      height: 70vh;
+      background: #525659;
+    }
+    #pdf-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* 腾讯会议链接 */
+    #meeting-view {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2e;
+      color: #ccc;
+      gap: 16px;
+      padding: 48px 20px;
+    }
+    #meeting-view .big { font-size: 52px; }
+    #meeting-view p    { font-size: 15px; }
+    #meeting-link {
+      display: inline-block;
+      margin-top: 8px;
+      background: #1a73e8;
+      color: white;
+      text-decoration: none;
+      padding: 12px 36px;
+      border-radius: 30px;
+      font-size: 16px;
+      font-weight: 600;
+      transition: background 0.15s, transform 0.1s;
+    }
+    #meeting-link:hover { background: #1558b0; transform: scale(1.03); }
+
+    /* 空状态 */
+    #empty-view {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2e;
+      color: #aaa;
+      gap: 10px;
+      padding: 48px 20px;
+    }
+    #empty-view .big  { font-size: 52px; }
+    #empty-view p     { font-size: 15px; }
+    #empty-view .hint { font-size: 12px; color: #666; }
+
+    /* ── 底栏 ── */
+    .modal-footer {
+      padding: 9px 20px;
+      background: #f8f9fa;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #888;
+      flex-shrink: 0;
+      border-top: 1px solid #eee;
+    }
+    .modal-footer kbd {
+      background: #e9ecef;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 12px;
+      color: #555;
+    }
+    #footer-action {
+      display: none;
+      background: #1a73e8;
+      color: white;
+      text-decoration: none;
+      padding: 5px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+    #footer-action:hover { background: #1558b0; }
+    #footer-action.show { display: inline-block; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">📐</div>
+  <div class="header-text">
+    <h1>数学课程</h1>
+    <p>▶ 视频讲解　　📄 题库练习　　点击节点即可打开</p>
+  </div>
+</div>
+
+<div id="mindmap-wrap">
+  <div class="markmap">
+    <!--
+    ════════════════════════════════════════════════
+     课程结构（只需修改这里）
+
+     ▶ 节点名  → 视频
+     📄 节点名  → PDF 文件
+     普通节点   → 仅分类，无内容
+
+     新增章节：继续加 ## 和 ### 即可
+    ════════════════════════════════════════════════
+    -->
+    <script type="text/template">
+---
+markmap:
+  colorFreezeLevel: 2
+  initialExpandLevel: 5
+  maxWidth: 220
+---
+
+# 📐 数学
+
+## 第一章：有理数
+
+### 知识讲解
+#### ▶ 有理数加法
+#### ▶ 有理数减法
+#### ▶ 本章综合复习
+
+### 题库练习
+#### 📄 基础练习题
+#### 📄 综合测试卷
+    </script>
+  </div>
+</div>
+
+<!-- 弹窗 -->
+<div id="overlay">
+  <div id="modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span id="modal-icon">🎬</span>
+        <span id="modal-title-text">内容</span>
+      </div>
+      <button class="modal-close" id="btn-close">✕</button>
+    </div>
+
+    <div id="content-area">
+      <!-- 普通视频（腾讯视频 / B站 等可嵌入） -->
+      <div id="video-wrap">
+        <iframe id="video-iframe" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+      </div>
+
+      <!-- PDF -->
+      <div id="pdf-wrap">
+        <iframe id="pdf-iframe"></iframe>
+      </div>
+
+      <!-- 腾讯会议链接（无法嵌入，显示跳转按钮） -->
+      <div id="meeting-view">
+        <div class="big">🎬</div>
+        <p>腾讯会议录制视频</p>
+        <a id="meeting-link" href="#" target="_blank" rel="noopener">▶ 点击观看视频</a>
+      </div>
+
+      <!-- 未填写链接 -->
+      <div id="empty-view">
+        <div class="big">📭</div>
+        <p>内容链接待填入</p>
+        <div class="hint">请在 CONTENT 配置中填入对应链接</div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span>按 <kbd>ESC</kbd> 或点击空白处关闭</span>
+      <a id="footer-action" href="#" target="_blank" rel="noopener">在新标签页打开 →</a>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.16"></script>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   ★ 每次更新只需修改这里 ★
+
+   key   = 节点名称（与思维导图中完全一致，不含 ▶ 或 📄）
+   value = 链接
+
+   视频链接类型：
+     · 腾讯会议录制：https://meeting.tencent.com/crm/xxxxx
+     · 腾讯视频嵌入：https://v.qq.com/txp/iframe/player.html?vid=xxxxx
+     · B站嵌入：     https://player.bilibili.com/player.html?bvid=xxxxx
+
+   PDF 链接类型：
+     · Gitee 原始文件：https://gitee.com/用户名/仓库名/raw/master/文件名.pdf
+     · 腾讯云 COS：   https://xxx.cos.ap-beijing.myqcloud.com/文件名.pdf
+════════════════════════════════════════════════════════════ */
+const CONTENT = {
+  // 视频
+  "有理数加法":   "https://meeting.tencent.com/crm/NXkqaV3G",
+  "有理数减法":   "https://meeting.tencent.com/crm/24DoXGXy4a",
+  "本章综合复习": "https://meeting.tencent.com/crm/24Dmo8Vz7c",
+
+  // PDF（上传后填入链接）
+  "基础练习题":  "",
+  "综合测试卷":  "",
+};
+
+/* ════════════════════════════════════════════════════════════
+   以下代码不需要修改
+════════════════════════════════════════════════════════════ */
+
+// 根据 URL 判断内容类型
+function detectType(url) {
+  if (!url) return 'empty';
+  if (url.match(/\.pdf(\?|$)/i)) return 'pdf';
+  if (url.includes('meeting.tencent.com')) return 'meeting';
+  return 'video';
+}
+
+const overlay     = document.getElementById('overlay');
+const titleText   = document.getElementById('modal-title-text');
+const modalIcon   = document.getElementById('modal-icon');
+const footerBtn   = document.getElementById('footer-action');
+
+const videoWrap   = document.getElementById('video-wrap');
+const videoIframe = document.getElementById('video-iframe');
+const pdfWrap     = document.getElementById('pdf-wrap');
+const pdfIframe   = document.getElementById('pdf-iframe');
+const meetingView = document.getElementById('meeting-view');
+const meetingLink = document.getElementById('meeting-link');
+const emptyView   = document.getElementById('empty-view');
+
+function hideAll() {
+  videoWrap.style.display   = 'none';
+  pdfWrap.style.display     = 'none';
+  meetingView.style.display = 'none';
+  emptyView.style.display   = 'none';
+  footerBtn.classList.remove('show');
+  videoIframe.src = '';
+  pdfIframe.src   = '';
+}
+
+function openContent(name) {
+  const url  = (CONTENT[name] || '').trim();
+  const type = detectType(url);
+
+  titleText.textContent = name;
+  hideAll();
+
+  if (type === 'empty') {
+    modalIcon.textContent = '📭';
+    emptyView.style.display = 'flex';
+
+  } else if (type === 'meeting') {
+    modalIcon.textContent = '🎬';
+    meetingLink.href = url;
+    meetingView.style.display = 'flex';
+    footerBtn.href = url;
+    footerBtn.classList.add('show');
+
+  } else if (type === 'pdf') {
+    modalIcon.textContent = '📄';
+    pdfIframe.src = url;
+    pdfWrap.style.display = 'block';
+    footerBtn.href = url;
+    footerBtn.textContent = '下载 / 新标签页打开 →';
+    footerBtn.classList.add('show');
+
+  } else {
+    modalIcon.textContent = '🎬';
+    videoIframe.src = url;
+    videoWrap.style.display = 'block';
+    footerBtn.href = url;
+    footerBtn.textContent = '在新标签页打开 →';
+    footerBtn.classList.add('show');
+  }
+
+  overlay.classList.add('open');
+}
+
+function closeModal() {
+  overlay.classList.remove('open');
+  hideAll();
+}
+
+document.getElementById('btn-close').addEventListener('click', closeModal);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// 点击检测：向上找 foreignObject 取文字
+document.getElementById('mindmap-wrap').addEventListener('click', function(e) {
+  let el = e.target;
+  while (el && el !== this) {
+    if (el.nodeName.toLowerCase() === 'foreignobject') {
+      const text = el.textContent.trim()
+        .replace(/^[▶►▷📄🎬]\s*/, '').trim();
+      if (text && text in CONTENT) {
+        openContent(text);
+        return;
+      }
+    }
+    el = el.parentNode;
+  }
+});
+
+// 可点击节点显示小手光标
+function styleNodes() {
+  document.querySelectorAll('foreignObject').forEach(fo => {
+    const text = fo.textContent.trim().replace(/^[▶►▷📄🎬]\s*/, '').trim();
+    if (text && text in CONTENT) {
+      fo.style.cursor = 'pointer';
+      const g = fo.closest('g');
+      if (g) g.style.cursor = 'pointer';
+    }
+  });
+}
+
+function waitAndStyle() {
+  if (document.querySelector('.markmap svg')) {
+    styleNodes();
+    setTimeout(styleNodes, 1000);
+  } else {
+    setTimeout(waitAndStyle, 200);
+  }
+}
+window.addEventListener('load', () => setTimeout(waitAndStyle, 400));
+</script>
+
+</body>
+</html>
