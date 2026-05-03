@@ -1829,7 +1829,7 @@ const CONTENT = {
   '有理数减法':   'https://meeting.tencent.com/crm/24DoXGXy4a',
   '本章综合复习': 'https://meeting.tencent.com/crm/24Dmo8Vz7c',
   '有理数乘法':   'https://meeting.tencent.com/crm/2qMLPkOm1d',
-  '基础练习题':   '',
+  '基础练习题':   'https://docs.qq.com/doc/DUVFaQVBBd1FCU01R?from_wiki_space=1',
   '综合测试卷':   '',
 };
 
@@ -1883,6 +1883,7 @@ function detectType(url) {
   if (!url) return 'empty';
   if (url.match(/\.pdf(\?|$)/i)) return 'pdf';
   if (url.includes('meeting.tencent.com')) return 'meeting';
+  if (url.includes('docs.qq.com')) return 'qqdoc';
   return 'video';
 }
 
@@ -1911,6 +1912,8 @@ function openContent(name) {
   hideAll();
   if (type === 'empty') {
     modalIcon.textContent = '📭'; emptyView.style.display = 'flex';
+  } else if (type === 'qqdoc') {
+    window.open(url, '_blank', 'noopener'); closeModal(); return;
   } else if (type === 'meeting') {
     modalIcon.textContent = '🎬'; meetingLink.href = url; meetingView.style.display = 'flex';
     footerBtn.href = url; footerBtn.classList.add('show');
@@ -1933,8 +1936,9 @@ document.getElementById('mindmap-wrap').addEventListener('click', function(e) {
   let el = e.target;
   while (el && el !== this) {
     if (el.nodeName.toLowerCase() === 'foreignobject') {
-      const text = el.textContent.trim().replace(/^[▶►▷📄🎬]\s*/, '').trim();
-      if (text && text in CONTENT) { openContent(text); return; }
+      const text = el.textContent.trim();
+      const key = Object.keys(CONTENT).find(k => text.includes(k));
+      if (key) { openContent(key); return; }
     }
     el = el.parentNode;
   }
@@ -1942,8 +1946,9 @@ document.getElementById('mindmap-wrap').addEventListener('click', function(e) {
 
 function styleNodes() {
   document.querySelectorAll('foreignObject').forEach(fo => {
-    const text = fo.textContent.trim().replace(/^[▶►▷📄🎬]\s*/, '').trim();
-    if (text && text in CONTENT) {
+    const text = fo.textContent.trim();
+    const key = Object.keys(CONTENT).find(k => text.includes(k));
+    if (key) {
       fo.style.cursor = 'pointer';
       const g = fo.closest('g');
       if (g) g.style.cursor = 'pointer';
