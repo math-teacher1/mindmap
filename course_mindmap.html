@@ -1825,26 +1825,34 @@
 const PASSWORD = 'chuzhong123';
 
 const CONTENT = {
-  '有理数加法':   'https://meeting.tencent.com/crm/NXkqaV3G',
-  '有理数减法':   'https://meeting.tencent.com/crm/24DoXGXy4a',
-  '本章综合复习': 'https://meeting.tencent.com/crm/24Dmo8Vz7c',
-  '有理数乘法':   'https://meeting.tencent.com/crm/2qMLPkOm1d',
-  '基础练习题':   'https://docs.qq.com/doc/DUVFaQVBBd1FCU01R?from_wiki_space=1',
-  '综合测试卷':   '',
+  '有理数加法|知识点讲解':   'https://meeting.tencent.com/crm/NXkqaV3G',
+  '有理数加法|练习题解析':   'https://docs.qq.com/doc/DUVFaQVBBd1FCU01R?from_wiki_space=1',
+  '有理数减法|知识点讲解':   'https://meeting.tencent.com/crm/24DoXGXy4a',
+  '有理数减法|练习题解析':   '',
+  '有理数乘法|知识点讲解':   'https://meeting.tencent.com/crm/2qMLPkOm1d',
+  '有理数乘法|练习题解析':   '',
+  '本章综合复习|知识点讲解': 'https://meeting.tencent.com/crm/24Dmo8Vz7c',
+  '本章综合复习|练习题解析': '',
 };
 
 const TREE = {
   content: '📐 数学', children: [{
     content: '第一章：有理数', children: [
-      { content: '知识讲解', children: [
-        { content: '▶ 有理数加法',   children: [] },
-        { content: '▶ 有理数减法',   children: [] },
-        { content: '▶ 本章综合复习', children: [] },
-        { content: '▶ 有理数乘法',   children: [] },
+      { content: '有理数加法', children: [
+        { content: '▶ 知识点讲解<span style="display:none">有理数加法|知识点讲解</span>', children: [] },
+        { content: '📄 练习题解析<span style="display:none">有理数加法|练习题解析</span>', children: [] },
       ]},
-      { content: '题库练习', children: [
-        { content: '📄 基础练习题', children: [] },
-        { content: '📄 综合测试卷', children: [] },
+      { content: '有理数减法', children: [
+        { content: '▶ 知识点讲解<span style="display:none">有理数减法|知识点讲解</span>', children: [] },
+        { content: '📄 练习题解析<span style="display:none">有理数减法|练习题解析</span>', children: [] },
+      ]},
+      { content: '有理数乘法', children: [
+        { content: '▶ 知识点讲解<span style="display:none">有理数乘法|知识点讲解</span>', children: [] },
+        { content: '📄 练习题解析<span style="display:none">有理数乘法|练习题解析</span>', children: [] },
+      ]},
+      { content: '本章综合复习', children: [
+        { content: '▶ 知识点讲解<span style="display:none">本章综合复习|知识点讲解</span>', children: [] },
+        { content: '📄 练习题解析<span style="display:none">本章综合复习|练习题解析</span>', children: [] },
       ]},
     ]
   }]
@@ -1905,10 +1913,11 @@ function hideAll() {
   videoIframe.src = pdfIframe.src = '';
 }
 
-function openContent(name) {
-  const url  = (CONTENT[name] || '').trim();
+function openContent(key) {
+  const [topic, resource] = key.split('|');
+  const url  = (CONTENT[key] || '').trim();
   const type = detectType(url);
-  titleText.textContent = name;
+  titleText.textContent = topic + ' · ' + (resource || key);
   hideAll();
   if (type === 'empty') {
     modalIcon.textContent = '📭'; emptyView.style.display = 'flex';
@@ -1936,9 +1945,9 @@ document.getElementById('mindmap-wrap').addEventListener('click', function(e) {
   let el = e.target;
   while (el && el !== this) {
     if (el.nodeName.toLowerCase() === 'foreignobject') {
-      const text = el.textContent.trim();
-      const key = Object.keys(CONTENT).find(k => text.includes(k));
-      if (key) { openContent(key); return; }
+      const keySpan = el.querySelector('span[style*="display:none"]');
+      const key = keySpan?.textContent.trim();
+      if (key && key in CONTENT) { openContent(key); return; }
     }
     el = el.parentNode;
   }
@@ -1946,9 +1955,9 @@ document.getElementById('mindmap-wrap').addEventListener('click', function(e) {
 
 function styleNodes() {
   document.querySelectorAll('foreignObject').forEach(fo => {
-    const text = fo.textContent.trim();
-    const key = Object.keys(CONTENT).find(k => text.includes(k));
-    if (key) {
+    const keySpan = fo.querySelector('span[style*="display:none"]');
+    const key = keySpan?.textContent.trim();
+    if (key && key in CONTENT) {
       fo.style.cursor = 'pointer';
       const g = fo.closest('g');
       if (g) g.style.cursor = 'pointer';
